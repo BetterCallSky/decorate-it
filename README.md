@@ -16,7 +16,7 @@ npm i --save decorate-it
 file `services/CalcService.js`
 ```js
 import Joi from 'joi';
-import decorate from '../src/decorator';
+import decorate from 'decorate-it';
 
 function add(a, b) {
   return a + b;
@@ -59,7 +59,7 @@ See example under `example/example1.js`. Run it using `npm run example1`.
 file `services/UserService.js`
 ```js
 import Joi from 'joi';
-import decorate from '../src/decorator';
+import decorate from 'decorate-it';
 
 async function getUser(id) {
   if (id === 1) {
@@ -99,7 +99,7 @@ await UserService.getUser(222); // throws 'User not found'
 
 ![Alt text](https://monosnap.com/file/Kk2wCus4TYBWES4KBCQWElwu6OpuES.png)
 
-See example under `example/example2.js`. Run it using `npm run example2`.
+See example under `example/example2.js`. Run it using `npm run example2`.  
 **NOTE** parameter names cannot be automatically retrieved from `async` methods.  
 You must define them explicitly in `params` property like this `getUser.params = ['id'];`
 
@@ -112,7 +112,7 @@ Example:
 file `services/SecurityService.js`
 ```js
 import Joi from 'joi';
-import decorate from '../src/decorator';
+import decorate from 'decorate-it';
 
 function hashPassword(password) {
   return 'ba817ef716'; // hash password here
@@ -146,6 +146,31 @@ SecurityService.hashPassword('secret-password');
 ![Alt text](https://monosnap.com/file/QuUXmIPKJ4GLNI1NvoAN8T2ClLnMv3.png)
 
 See example under `example/example3.js`. Run it using `npm run example3`.
+
+
+## Configuration
+```
+import decorate from 'decorate-it';
+
+decorate.configure({
+  removeFields: Array<String>, // the array of fields not won't be logged to the console, default: ['password', 'token', 'accessToken'],
+  debug: true/false,           // the flag is parameter/ouput logging is enabled, (errors are always enabled), default: true
+  depth: number,               // the object depth level when serializing, default: 4           
+  maxArrayLength: number,      // the maximum number of elements to include when formatting, default: 30  
+})
+```
+
+You can configure it, before creating any service.
+
+## Special properties
+if parameter name is `req` it's assume that the object is an express request.  
+Only properties are logged: `method`, `url`, `headers`, `remoteAddress`, `remotePort`.  
+
+
+if parameter name is `res` it's assume that the object is an express response.  
+Only properties are logged: `statusCode`, `header`.  
+
+
 
 MIT License
 

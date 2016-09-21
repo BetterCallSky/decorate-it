@@ -172,7 +172,7 @@ export function validate(method) {
 
 
 export default function decorate(service, serviceName) {
-  const logger = bunyan.createLogger({ name: serviceName, level: 'debug' });
+  const logger = bunyan.createLogger({ name: serviceName, level: _config.debug ? 'debug' : 'error' });
   _.map(service, (method, name) => {
     method.methodName = name;
     if (!method.params) {
