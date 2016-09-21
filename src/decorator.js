@@ -75,6 +75,12 @@ function _serializeObject(obj) {
   return util.inspect(_sanitizeObject(obj), { depth: _config.depth });
 }
 
+function _keepProps(method, newMethod) {
+  const props = ['methodName', 'params', 'removeOutput'];
+  _.extend(newMethod, _.pick(method, props));
+  return newMethod;
+}
+
 // ------------------------------------
 // Exports
 // ------------------------------------
@@ -96,21 +102,21 @@ export function configure(opts) {
  * and logging errors
  * @param {Function} method the method to decorate
  * @param {Function} method.params the method parameters
- * @param {String} method.name the method name
  * @param {Boolean} method.removeOutput true if don't log output (e.g. sensitive data)
+ * @param {String} method.methodName the method name
  * @param {Function} logger the instance of the debug logger
  * @returns {Function} the decorator
  */
 export function log(method, logger) {
-  const params = method.params || getParams(method);
-  const methodName = method.name;
+  const methodName = method.methodName || method.name;
+  const params = method.params;
   const removeOutput = method.removeOutput;
   const logExit = (output, id) => {
     const formattedOutput = removeOutput ? '<removed>' : _serializeObject(output);
     logger.debug({ id }, ` EXIT ${methodName}:`, formattedOutput);
     return output;
   };
-  return (...args) => {
+  const decorated = function logDecorator(...args) {
     const id = ++_seqId;
     const formattedInput = params.length ? _serializeObject(_combineObject(params, args)) : [];
     logger.debug({ id }, `ENTER ${methodName}:`, formattedInput);
@@ -135,6 +141,7 @@ export function log(method, logger) {
     logExit(result, id);
     return result;
   };
+  return _keepProps(method, decorated);
 }
 
 
@@ -146,9 +153,9 @@ export function log(method, logger) {
  * @returns {Function} the decorator
  */
 export function validate(method) {
-  const params = method.params || getParams(method);
+  const params = method.params;
   const schema = method.schema;
-  return function validateDecorator(...args) {
+  const decorated = function validateDecorator(...args) {
     const value = _combineObject(params, args);
     const normalized = Joi.attempt(value, schema);
     const newArgs = [];
@@ -160,20 +167,17 @@ export function validate(method) {
     });
     return method(...newArgs);
   };
+  return _keepProps(method, decorated);
 }
 
 
 export default function decorate(service, serviceName) {
   const logger = bunyan.createLogger({ name: serviceName, level: 'debug' });
   _.map(service, (method, name) => {
-    const args = {
-      logger,
-      serviceName,
-      params: method.params || getParams(method),
-      schema: method.schema,
-      methodName: method.name,
-      removeOutput: method.removeOutput,
-    };
-    service[name] = log(validate(method, args), args);
+    method.methodName = name;
+    if (!method.params) {
+      method.params = getParams(method);
+    }
+    service[name] = log(validate(method), logger, name);
   });
 }

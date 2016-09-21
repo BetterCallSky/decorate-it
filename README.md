@@ -1,78 +1,151 @@
-# express-wrap-async
-[![Build Status](https://travis-ci.org/lsentkiewicz/express-wrap-async.svg?branch=master)](https://travis-ci.org/lsentkiewicz/express-wrap-async)
-[![codecov](https://codecov.io/gh/lsentkiewicz/express-wrap-async/branch/master/graph/badge.svg)](https://codecov.io/gh/lsentkiewicz/express-wrap-async)
+# decorate-it
+[![Build Status](https://travis-ci.org/lsentkiewicz/decorate-it.svg?branch=master)](https://travis-ci.org/lsentkiewicz/decorate-it)
+[![codecov](https://codecov.io/gh/lsentkiewicz/decorate-it/branch/master/graph/badge.svg)](https://codecov.io/gh/lsentkiewicz/decorate-it)
 
-## Usage
+Decorate-it is a simple library for validation and logging.  
+It depends on [joi](https://github.com/hapijs/joi) (validator) and [bunyan](https://github.com/trentm/node-bunyan) (logger)
+
+## Installation
 
 ```
-npm i --save express-wrap-async
+npm i --save decorate-it
 ```
 
+
+## Sample usage
+file `services/CalcService.js`
 ```js
-import wrapAsync from 'express-wrap-async';
-```
+import Joi from 'joi';
+import decorate from '../src/decorator';
 
-
-### Promise example
-```js
-function routePromise(req, res) {
-  return new Promise((resolve) => {
-    res.send({ ok: true });
-    resolve();
-  });
+function add(a, b) {
+  return a + b;
 }
 
-router.get('/promise', wrapAsync(routePromise));
+add.schema = {
+  a: Joi.number().required(),
+  b: Joi.number().required(),
+};
+
+
+// create your service
+const CalcService = {
+  add,
+};
+
+// decorate it, it will mutate CalcService
+decorate(CalcService, 'CalcService');
+
+export default CalcService;
 
 ```
 
-### Babel example:
+use service
 ```js
-const fakeWait = () => new Promise((resolve) => setTimeout(resolve, 100));
+import CalcService from './services/CalcService';
 
-async function asyncRoute(req, res) {
-  await fakeWait();
-  res.send({ ok: true });
+
+CalcService.add(1, 3); // returns 4
+CalcService.add('5', '6'); // returns 11, input parameters are converted to number types
+CalcService.add('1', { foo: 'bar' }); // logs and throws an error
+```
+
+![Alt text](https://monosnap.com/file/7fZER5fIdYfMmWQ4uiPe8iZSXEdfrG.png)
+
+See example under `example/example1.js`. Run it using `npm run example1`.
+
+
+## Async sample usage
+file `services/UserService.js`
+```js
+import Joi from 'joi';
+import decorate from '../src/decorator';
+
+async function getUser(id) {
+  if (id === 1) {
+    return await new Promise((resolve) => {
+      setTimeout(() => resolve({ id: 1, username: 'john' }), 100);
+    });
+  }
+  throw new Error('User not found');
 }
-router.get('/async', wrapAsync(asyncRoute));
+
+getUser.params = ['id'];
+getUser.schema = {
+  id: Joi.number().required(),
+};
+
+
+// create your service
+const UserService = {
+  getUser,
+};
+
+// decorate it, it will mutate UserService
+decorate(UserService, 'UserService');
+
+export default UserService;
+
 ```
 
-### Multiple middlewares
+use service
 ```js
-const middlewares = [
-  async(req, res, next) => {
-    await fakeWait();
-    next();
-  },
-  (req, res, next) => {
-    // non async middleware will also work
-    next();
-  },
-  asyncRoute,
-];
+import UserService from './services/UserService';
 
-router.get('/middlewares', wrapAsync(middlewares));
+
+await UserService.getUser(1); // returns { id: 1, username: 'john' }
+await UserService.getUser(222); // throws 'User not found'
 ```
 
+![Alt text](https://monosnap.com/file/Kk2wCus4TYBWES4KBCQWElwu6OpuES.png)
 
-### Error handling
+See example under `example/example2.js`. Run it using `npm run example2`.
+**NOTE** parameter names cannot be automatically retrieved from `async` methods.  
+You must define them explicitly in `params` property like this `getUser.params = ['id'];`
+
+
+## Removing security information
+By default properties `password`, `token`, `accessToken` are removed from logging.  
+Additionally you can define `removeOutput = true` to remove the method result.  
+Example:
+
+file `services/SecurityService.js`
 ```js
-async function errorRoute(req, res) {
-  await fakeWait();
-  throw new Error('unexpected error');
+import Joi from 'joi';
+import decorate from '../src/decorator';
+
+function hashPassword(password) {
+  return 'ba817ef716'; // hash password here
 }
-router.get('/standard', wrapAsync(errorRoute));
 
-app.use((err, req, res, next) => {
-  res.status(500);
-  res.json({
-    error: err.message,
-  });
-});
+hashPassword.removeOutput = true;
+hashPassword.schema = {
+  password: Joi.string().required(),
+};
+
+
+// create your service
+const SecurityService = {
+  hashPassword,
+};
+
+// decorate it, it will mutate SecurityService
+decorate(SecurityService, 'SecurityService');
+
+export default SecurityService;
 
 ```
 
+use service
+```js
+import SecurityService from './services/SecurityService';
 
+SecurityService.hashPassword('secret-password');
+```
+
+![Alt text](https://monosnap.com/file/QuUXmIPKJ4GLNI1NvoAN8T2ClLnMv3.png)
+
+See example under `example/example3.js`. Run it using `npm run example3`.
 
 MIT License
 
