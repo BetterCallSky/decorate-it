@@ -24,36 +24,39 @@ let _seqId = 0;
  * @private
  */
 function _sanitizeObject(obj) {
-  try {
-    return JSON.parse(JSON.stringify(obj, (name, value) => {
-      // Array of field names that should not be logged
-      // add field if necessary (password, tokens etc)
-      if (_.includes(_config.removeFields, name)) {
-        return '<removed>';
-      }
-      if (name === 'req' && value && value.connection) {
-        return {
-          method: value.method,
-          url: value.url,
-          headers: value.headers,
-          remoteAddress: value.connection.remoteAddress,
-          remotePort: value.connection.remotePort,
-        };
-      }
-      if (name === 'res' && value && value.statusCode) {
-        return {
-          statusCode: value.statusCode,
-          header: value._header,
-        };
-      }
-      if (_.isArray(value) && value.length > _config.maxArrayLength) {
-        return `Array(${value.length})`;
-      }
-      return value;
-    }));
-  } catch (e) {
-    return obj;
-  }
+  const seen = [];
+  return JSON.parse(JSON.stringify(obj, (name, value) => {
+    if (seen.indexOf(value) !== -1) {
+      return '[Circular]';
+    }
+    if (_.isObject(value)) {
+      seen.push(value);
+    }
+    // Array of field names that should not be logged
+    // add field if necessary (password, tokens etc)
+    if (_.includes(_config.removeFields, name)) {
+      return '<removed>';
+    }
+    if (name === 'req' && value && value.connection) {
+      return {
+        method: value.method,
+        url: value.url,
+        headers: value.headers,
+        remoteAddress: value.connection.remoteAddress,
+        remotePort: value.connection.remotePort,
+      };
+    }
+    if (name === 'res' && value && value.statusCode) {
+      return {
+        statusCode: value.statusCode,
+        header: value._header,
+      };
+    }
+    if (_.isArray(value) && value.length > _config.maxArrayLength) {
+      return `Array(${value.length})`;
+    }
+    return value;
+  }));
 }
 
 
@@ -71,10 +74,18 @@ function _combineObject(params, arr) {
   return ret;
 }
 
+
 function _serializeObject(obj) {
   return util.inspect(_sanitizeObject(obj), { depth: _config.depth });
 }
 
+/**
+ * Copy decorator properties from the original method to the new method
+ * @param method
+ * @param newMethod
+ * @returns {function}
+ * @private
+ */
 function _keepProps(method, newMethod) {
   const props = ['methodName', 'params', 'removeOutput'];
   _.extend(newMethod, _.pick(method, props));
@@ -93,8 +104,15 @@ function _keepProps(method, newMethod) {
  * @param {Number} opts.depth the object depth level when serializing
  * @param {Number} opts.maxArrayLength the maximum number of elements to include when formatting
  */
-export function configure(opts) {
+function configure(opts) {
   _.extend(_config, opts);
+}
+
+/**
+ * Reset counter (needed for tests)
+ */
+export function resetId() {
+  _seqId = 0;
 }
 
 /**
@@ -108,7 +126,7 @@ export function configure(opts) {
  * @returns {Function} the decorator
  */
 export function log(method, logger) {
-  const methodName = method.methodName || method.name;
+  const methodName = method.methodName;
   const params = method.params;
   const removeOutput = method.removeOutput;
   const logExit = (output, id) => {
@@ -118,7 +136,7 @@ export function log(method, logger) {
   };
   const decorated = function logDecorator(...args) {
     const id = ++_seqId;
-    const formattedInput = params.length ? _serializeObject(_combineObject(params, args)) : [];
+    const formattedInput = params.length ? _serializeObject(_combineObject(params, args)) : '{ }';
     logger.debug({ id }, `ENTER ${methodName}:`, formattedInput);
     let result;
 
@@ -171,6 +189,11 @@ export function validate(method) {
 }
 
 
+/**
+ * Decorate all methods in the service
+ * @param {Object} service the service object
+ * @param {String} serviceName the service name
+ */
 export default function decorate(service, serviceName) {
   const logger = bunyan.createLogger({ name: serviceName, level: _config.debug ? 'debug' : 'error' });
   _.map(service, (method, name) => {
@@ -181,3 +204,5 @@ export default function decorate(service, serviceName) {
     service[name] = log(validate(method), logger, name);
   });
 }
+
+decorate.configure = configure;

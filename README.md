@@ -160,14 +160,14 @@ decorate.configure({
 })
 ```
 
-You can configure it, before creating any service.
+You must configure it, before creating any service.
 
 ## Special properties
-if parameter name is `req` it's assume that the object is an express request.  
+if the parameter name is `req` it's assumed that the object is an express request.  
 Only properties are logged: `method`, `url`, `headers`, `remoteAddress`, `remotePort`.  
 
 
-if parameter name is `res` it's assume that the object is an express response.  
+if the parameter name is `res` it's assumed that the object is an express response.  
 Only properties are logged: `statusCode`, `header`.  
 
 
