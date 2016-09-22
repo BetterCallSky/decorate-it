@@ -8,7 +8,7 @@ var _stringify = require('babel-runtime/core-js/json/stringify');
 
 var _stringify2 = _interopRequireDefault(_stringify);
 
-exports.configure = configure;
+exports.resetId = resetId;
 exports.log = log;
 exports.validate = validate;
 exports.default = decorate;
@@ -55,36 +55,39 @@ var _seqId = 0;
  * @private
  */
 function _sanitizeObject(obj) {
-  try {
-    return JSON.parse((0, _stringify2.default)(obj, function (name, value) {
-      // Array of field names that should not be logged
-      // add field if necessary (password, tokens etc)
-      if (_lodash2.default.includes(_config.removeFields, name)) {
-        return '<removed>';
-      }
-      if (name === 'req' && value && value.connection) {
-        return {
-          method: value.method,
-          url: value.url,
-          headers: value.headers,
-          remoteAddress: value.connection.remoteAddress,
-          remotePort: value.connection.remotePort
-        };
-      }
-      if (name === 'res' && value && value.statusCode) {
-        return {
-          statusCode: value.statusCode,
-          header: value._header
-        };
-      }
-      if (_lodash2.default.isArray(value) && value.length > _config.maxArrayLength) {
-        return 'Array(' + value.length + ')';
-      }
-      return value;
-    }));
-  } catch (e) {
-    return obj;
-  }
+  var seen = [];
+  return JSON.parse((0, _stringify2.default)(obj, function (name, value) {
+    if (seen.indexOf(value) !== -1) {
+      return '[Circular]';
+    }
+    if (_lodash2.default.isObject(value)) {
+      seen.push(value);
+    }
+    // Array of field names that should not be logged
+    // add field if necessary (password, tokens etc)
+    if (_lodash2.default.includes(_config.removeFields, name)) {
+      return '<removed>';
+    }
+    if (name === 'req' && value && value.connection) {
+      return {
+        method: value.method,
+        url: value.url,
+        headers: value.headers,
+        remoteAddress: value.connection.remoteAddress,
+        remotePort: value.connection.remotePort
+      };
+    }
+    if (name === 'res' && value && value.statusCode) {
+      return {
+        statusCode: value.statusCode,
+        header: value._header
+      };
+    }
+    if (_lodash2.default.isArray(value) && value.length > _config.maxArrayLength) {
+      return 'Array(' + value.length + ')';
+    }
+    return value;
+  }));
 }
 
 /**
@@ -105,6 +108,19 @@ function _serializeObject(obj) {
   return _util2.default.inspect(_sanitizeObject(obj), { depth: _config.depth });
 }
 
+/**
+ * Copy decorator properties from the original method to the new method
+ * @param method
+ * @param newMethod
+ * @returns {function}
+ * @private
+ */
+function _keepProps(method, newMethod) {
+  var props = ['methodName', 'params', 'removeOutput'];
+  _lodash2.default.extend(newMethod, _lodash2.default.pick(method, props));
+  return newMethod;
+}
+
 // ------------------------------------
 // Exports
 // ------------------------------------
@@ -122,31 +138,39 @@ function configure(opts) {
 }
 
 /**
+ * Reset counter (needed for tests)
+ */
+function resetId() {
+  _seqId = 0;
+}
+
+/**
  * Decorator for logging input and output arguments (debug mode)
  * and logging errors
  * @param {Function} method the method to decorate
  * @param {Function} method.params the method parameters
- * @param {String} method.name the method name
  * @param {Boolean} method.removeOutput true if don't log output (e.g. sensitive data)
+ * @param {String} method.methodName the method name
  * @param {Function} logger the instance of the debug logger
  * @returns {Function} the decorator
  */
 function log(method, logger) {
-  var params = method.params || (0, _getParameterNames2.default)(method);
-  var methodName = method.name;
+  var methodName = method.methodName;
+  var params = method.params;
   var removeOutput = method.removeOutput;
   var logExit = function logExit(output, id) {
     var formattedOutput = removeOutput ? '<removed>' : _serializeObject(output);
     logger.debug({ id: id }, ' EXIT ' + methodName + ':', formattedOutput);
     return output;
   };
-  return function () {
+  var decorated = function logDecorator() {
+    var id = ++_seqId;
+
     for (var _len = arguments.length, args = Array(_len), _key = 0; _key < _len; _key++) {
       args[_key] = arguments[_key];
     }
 
-    var id = ++_seqId;
-    var formattedInput = params.length ? _serializeObject(_combineObject(params, args)) : [];
+    var formattedInput = params.length ? _serializeObject(_combineObject(params, args)) : '{ }';
     logger.debug({ id: id }, 'ENTER ' + methodName + ':', formattedInput);
     var result = void 0;
 
@@ -169,6 +193,7 @@ function log(method, logger) {
     logExit(result, id);
     return result;
   };
+  return _keepProps(method, decorated);
 }
 
 /**
@@ -179,9 +204,9 @@ function log(method, logger) {
  * @returns {Function} the decorator
  */
 function validate(method) {
-  var params = method.params || (0, _getParameterNames2.default)(method);
+  var params = method.params;
   var schema = method.schema;
-  return function validateDecorator() {
+  var decorated = function validateDecorator() {
     for (var _len2 = arguments.length, args = Array(_len2), _key2 = 0; _key2 < _len2; _key2++) {
       args[_key2] = arguments[_key2];
     }
@@ -197,19 +222,23 @@ function validate(method) {
     });
     return method.apply(undefined, newArgs);
   };
+  return _keepProps(method, decorated);
 }
 
+/**
+ * Decorate all methods in the service
+ * @param {Object} service the service object
+ * @param {String} serviceName the service name
+ */
 function decorate(service, serviceName) {
-  var logger = _bunyan2.default.createLogger({ name: serviceName, level: 'debug' });
+  var logger = _bunyan2.default.createLogger({ name: serviceName, level: _config.debug ? 'debug' : 'error' });
   _lodash2.default.map(service, function (method, name) {
-    var args = {
-      logger: logger,
-      serviceName: serviceName,
-      params: method.params || (0, _getParameterNames2.default)(method),
-      schema: method.schema,
-      methodName: method.name,
-      removeOutput: method.removeOutput
-    };
-    service[name] = log(validate(method, args), args);
+    method.methodName = name;
+    if (!method.params) {
+      method.params = (0, _getParameterNames2.default)(method);
+    }
+    service[name] = log(validate(method), logger, name);
   });
 }
+
+decorate.configure = configure;

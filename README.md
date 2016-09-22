@@ -156,7 +156,7 @@ decorate.configure({
   removeFields: Array<String>, // the array of fields not won't be logged to the console, default: ['password', 'token', 'accessToken'],
   debug: true/false,           // the flag is parameter/ouput logging is enabled, (errors are always enabled), default: true
   depth: number,               // the object depth level when serializing, default: 4           
-  maxArrayLength: number,      // the maximum number of elements to include when formatting, default: 30  
+  maxArrayLength: number,      // the maximum number of elements to include when formatting an array, default: 30  
 })
 ```
 
