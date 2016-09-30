@@ -171,9 +171,9 @@ export function log(method, logger) {
  * @returns {Function} the decorator
  */
 export function validate(method) {
-  const params = method.params;
-  const schema = method.schema;
   const decorated = function validateDecorator(...args) {
+    const params = method.params;
+    const schema = method.schema;
     const value = _combineObject(params, args);
     const normalized = Joi.attempt(value, schema);
     const newArgs = [];
