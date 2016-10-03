@@ -126,15 +126,15 @@ export function resetId() {
  * @returns {Function} the decorator
  */
 export function log(method, logger) {
-  const methodName = method.methodName;
-  const params = method.params;
-  const removeOutput = method.removeOutput;
-  const logExit = (output, id) => {
-    const formattedOutput = removeOutput ? '<removed>' : _serializeObject(output);
-    logger.debug({ id }, ` EXIT ${methodName}:`, formattedOutput);
-    return output;
-  };
   const decorated = function logDecorator(...args) {
+    const methodName = method.methodName;
+    const params = method.params;
+    const removeOutput = method.removeOutput;
+    const logExit = (output, id) => {
+      const formattedOutput = removeOutput ? '<removed>' : _serializeObject(output);
+      logger.debug({ id }, ` EXIT ${methodName}:`, formattedOutput);
+      return output;
+    };
     const id = ++_seqId;
     const formattedInput = params.length ? _serializeObject(_combineObject(params, args)) : '{ }';
     logger.debug({ id }, `ENTER ${methodName}:`, formattedInput);
