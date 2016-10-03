@@ -155,15 +155,15 @@ function resetId() {
  * @returns {Function} the decorator
  */
 function log(method, logger) {
-  var methodName = method.methodName;
-  var params = method.params;
-  var removeOutput = method.removeOutput;
-  var logExit = function logExit(output, id) {
-    var formattedOutput = removeOutput ? '<removed>' : _serializeObject(output);
-    logger.debug({ id: id }, ' EXIT ' + methodName + ':', formattedOutput);
-    return output;
-  };
   var decorated = function logDecorator() {
+    var methodName = method.methodName;
+    var params = method.params;
+    var removeOutput = method.removeOutput;
+    var logExit = function logExit(output, id) {
+      var formattedOutput = removeOutput ? '<removed>' : _serializeObject(output);
+      logger.debug({ id: id }, ' EXIT ' + methodName + ':', formattedOutput);
+      return output;
+    };
     var id = ++_seqId;
 
     for (var _len = arguments.length, args = Array(_len), _key = 0; _key < _len; _key++) {
