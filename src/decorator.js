@@ -119,17 +119,18 @@ export function resetId() {
  * Decorator for logging input and output arguments (debug mode)
  * and logging errors
  * @param {Function} method the method to decorate
- * @param {Function} method.params the method parameters
- * @param {Boolean} method.removeOutput true if don't log output (e.g. sensitive data)
- * @param {String} method.methodName the method name
  * @param {Function} logger the instance of the debug logger
+ * @param {Object} opts the options
+ * @param {Array} method.params the method parameters
+ * @param {Boolean} opts.removeOutput true if don't log output (e.g. sensitive data)
+ * @param {String} opts.methodName the method name
  * @returns {Function} the decorator
  */
-export function log(method, logger) {
+export function log(method, logger, opts) {
   const decorated = function logDecorator(...args) {
-    const methodName = method.methodName;
-    const params = method.params;
-    const removeOutput = method.removeOutput;
+    const methodName = opts.methodName;
+    const params = opts.params;
+    const removeOutput = opts.removeOutput;
     const logExit = (output, id) => {
       const formattedOutput = removeOutput ? '<removed>' : _serializeObject(output);
       logger.debug({ id }, ` EXIT ${methodName}:`, formattedOutput);
@@ -201,7 +202,7 @@ export default function decorate(service, serviceName) {
     if (!method.params) {
       method.params = getParams(method);
     }
-    service[name] = log(validate(method), logger, name);
+    service[name] = log(validate(method), logger, method);
   });
 }
 
