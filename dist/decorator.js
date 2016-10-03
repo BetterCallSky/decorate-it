@@ -55,6 +55,9 @@ var _seqId = 0;
  * @private
  */
 function _sanitizeObject(obj) {
+  if (obj === undefined) {
+    return obj;
+  }
   var seen = [];
   return JSON.parse((0, _stringify2.default)(obj, function (name, value) {
     if (seen.indexOf(value) !== -1) {

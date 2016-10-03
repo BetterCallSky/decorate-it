@@ -24,6 +24,9 @@ let _seqId = 0;
  * @private
  */
 function _sanitizeObject(obj) {
+  if (obj === undefined) {
+    return obj;
+  }
   const seen = [];
   return JSON.parse(JSON.stringify(obj, (name, value) => {
     if (seen.indexOf(value) !== -1) {

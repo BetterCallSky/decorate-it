@@ -80,6 +80,27 @@ describe('decorator', () => {
     });
   });
 
+  describe('[sync returns undefined]', () => {
+    let _service;
+    before(() => {
+      function getValue() {
+        return undefined;
+      }
+
+      getValue.schema = { };
+      _service = { getValue };
+      decorator(_service, 'CalcService');
+    });
+
+    it('should get value', () => {
+      const result = _service.getValue();
+      expect(result).to.be.equal(undefined);
+      _debug.should.have.been.calledTwice;
+      _debug.firstCall.should.have.been.calledWith({ id: 1 }, 'ENTER getValue:', '{ }');
+      _debug.secondCall.should.have.been.calledWith({ id: 1 }, ' EXIT getValue:', 'undefined');
+    });
+  });
+
 
   describe('[async]', () => {
     let _service;
