@@ -4,6 +4,10 @@ Object.defineProperty(exports, "__esModule", {
   value: true
 });
 
+var _promise = require('babel-runtime/core-js/promise');
+
+var _promise2 = _interopRequireDefault(_promise);
+
 var _stringify = require('babel-runtime/core-js/json/stringify');
 
 var _stringify2 = _interopRequireDefault(_stringify);
@@ -205,6 +209,7 @@ function log(method, logger, opts) {
  * @param {Function} method the method to decorate
  * @param {Array} method.params the method parameters
  * @param {Object} method.schema the joi schema
+ * @param {Boolean} method.sync the flag if method is sync or async
  * @returns {Function} the decorator
  */
 function validate(method) {
@@ -217,7 +222,15 @@ function validate(method) {
     }
 
     var value = _combineObject(params, args);
-    var normalized = _joi2.default.attempt(value, schema);
+    var normalized = void 0;
+    try {
+      normalized = _joi2.default.attempt(value, schema);
+    } catch (e) {
+      if (method.sync) {
+        throw e;
+      }
+      return _promise2.default.reject(e);
+    }
     var newArgs = [];
     // Joi will normalize values
     // for example string number '1' to 1
