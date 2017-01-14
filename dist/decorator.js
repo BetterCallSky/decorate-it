@@ -43,7 +43,10 @@ var _config = {
   removeFields: ['password', 'token', 'accessToken'],
   debug: true,
   depth: 4,
-  maxArrayLength: 30
+  maxArrayLength: 30,
+  loggerFactory: function loggerFactory(serviceName, config) {
+    return _bunyan2.default.createLogger({ name: serviceName, level: config.debug ? 'debug' : 'error' });
+  }
 };
 
 var _seqId = 0;
@@ -249,7 +252,7 @@ function validate(method) {
  * @param {String} serviceName the service name
  */
 function decorate(service, serviceName) {
-  var logger = _bunyan2.default.createLogger({ name: serviceName, level: _config.debug ? 'debug' : 'error' });
+  var logger = _config.loggerFactory(serviceName, _config);
   _lodash2.default.map(service, function (method, name) {
     method.methodName = name;
     if (!method.params) {
