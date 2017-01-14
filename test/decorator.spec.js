@@ -17,11 +17,6 @@ describe('decorator', () => {
     bunyan.prototype.error.restore();
   });
 
-  // sometimes a function can throw or return rejected promise
-  async function _invoke(fn) {
-    await fn();
-  }
-
   describe('[sync]', () => {
     let _service;
     before(() => {
@@ -33,6 +28,7 @@ describe('decorator', () => {
         a: Joi.number().required(),
         b: Joi.number().required(),
       };
+      add.sync = true;
       _service = { add };
       decorator(_service, 'CalcService');
     });
@@ -135,12 +131,12 @@ describe('decorator', () => {
     });
 
     it('should throw a validation error if argument is invalid', async() => {
-      expect(_invoke(() => _service.getUser({ foo: 'bar' }))).to.be.rejectedWith(/"id" must be a number/);
+      await expect(_service.getUser({ foo: 'bar' })).to.be.rejectedWith(/"id" must be a number/);
       _error.should.have.been.calledWith;
     });
 
     it('should throw an error if user is not found', async() => {
-      expect(_invoke(() => _service.getUser(2))).to.be.rejectedWith(/User not found/);
+      await expect(_service.getUser(2)).to.be.rejectedWith(/User not found/);
       _error.should.have.been.calledWith;
     });
   });

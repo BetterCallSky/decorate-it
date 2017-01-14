@@ -172,6 +172,7 @@ export function log(method, logger, opts) {
  * @param {Function} method the method to decorate
  * @param {Array} method.params the method parameters
  * @param {Object} method.schema the joi schema
+ * @param {Boolean} method.sync the flag if method is sync or async
  * @returns {Function} the decorator
  */
 export function validate(method) {
@@ -179,7 +180,15 @@ export function validate(method) {
     const params = method.params;
     const schema = method.schema;
     const value = _combineObject(params, args);
-    const normalized = Joi.attempt(value, schema);
+    let normalized;
+    try {
+      normalized = Joi.attempt(value, schema);
+    } catch (e) {
+      if (method.sync) {
+        throw e;
+      }
+      return Promise.reject(e);
+    }
     const newArgs = [];
     // Joi will normalize values
     // for example string number '1' to 1

@@ -22,6 +22,7 @@ function add(a, b) {
   return a + b;
 }
 
+add.sync = true;
 add.schema = {
   a: Joi.number().required(),
   b: Joi.number().required(),
@@ -69,7 +70,7 @@ async function getUser(id) {
   }
   throw new Error('User not found');
 }
-
+getUser.sync = false; // optional, false by default
 getUser.params = ['id'];
 getUser.schema = {
   id: Joi.number().required(),
