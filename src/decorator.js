@@ -9,9 +9,8 @@ const _config = {
   debug: true,
   depth: 4,
   maxArrayLength: 30,
-  loggerFactory: (serviceName, config) => {
-    return bunyan.createLogger({ name: serviceName, level: config.debug ? 'debug' : 'error' });
-  },
+  loggerFactory: (serviceName, config) =>
+    bunyan.createLogger({ name: serviceName, level: config.debug ? 'debug' : 'error' }),
 };
 
 let _seqId = 0;
