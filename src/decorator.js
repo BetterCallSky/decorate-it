@@ -9,6 +9,9 @@ const _config = {
   debug: true,
   depth: 4,
   maxArrayLength: 30,
+  loggerFactory: (serviceName, config) => {
+    return bunyan.createLogger({ name: serviceName, level: config.debug ? 'debug' : 'error' });
+  },
 };
 
 let _seqId = 0;
@@ -208,7 +211,7 @@ export function validate(method) {
  * @param {String} serviceName the service name
  */
 export default function decorate(service, serviceName) {
-  const logger = bunyan.createLogger({ name: serviceName, level: _config.debug ? 'debug' : 'error' });
+  const logger = _config.loggerFactory(serviceName, _config);
   _.map(service, (method, name) => {
     method.methodName = name;
     if (!method.params) {
