@@ -1,6 +1,6 @@
 {
   "name": "decorate-it",
-  "version": "2.1.0",
+  "version": "2.2.0",
   "description": "Logging and validations decorators for nodejs services",
   "main": "dist/decorator.js",
   "scripts": {
