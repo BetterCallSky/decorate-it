@@ -1,6 +1,6 @@
 # decorate-it
 [![Build Status](https://travis-ci.org/lsentkiewicz/decorate-it.svg?branch=master)](https://travis-ci.org/lsentkiewicz/decorate-it)
-[![codecov](https://codecov.io/gh/lsentkiewicz/decorate-it/branch/master/graph/badge.svg)](https://codecov.io/gh/lsentkiewicz/decorate-it)
+[![codecov](https://codecov.io/gh/lsentkiewicz/decorate-it/branch/master/graph/badge.svg)](https://codecov.io/gh/lsentkiewicz/decorate-it) [![Greenkeeper badge](https://badges.greenkeeper.io/BetterCallSky/decorate-it.svg)](https://greenkeeper.io/)
 
 Decorate-it is a simple library for validation and logging.  
 It depends on [joi](https://github.com/hapijs/joi) (validator) and [bunyan](https://github.com/trentm/node-bunyan) (logger)
